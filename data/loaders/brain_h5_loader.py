@@ -186,6 +186,14 @@ class BrainH5Loader(DefaultDataset):
             if len(img_tensor.shape) == 2:
                 img_tensor = img_tensor.unsqueeze(0)
 
+            # Normalize to [-1, 1] range (required by torchvision transforms for float images)
+            img_min = img_tensor.min()
+            img_max = img_tensor.max()
+            if img_max > img_min:
+                img_tensor = 2.0 * (img_tensor - img_min) / (img_max - img_min) - 1.0
+            else:
+                img_tensor = torch.zeros_like(img_tensor)
+
             # Resize
             img_tensor = self.RES(img_tensor)
 
