@@ -1,0 +1,52 @@
+# Model weights and evaluation outputs
+weights/
+
+# Weights & Biases
+wandb/
+
+# SLURM logs
+logs/
+
+# Python bytecode
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.nbc
+*.nbi
+
+# macOS
+**/.DS_Store
+
+# Test/artifact images in source tree
+*.png
+
+# VS Code
+.vscode/
+
+# Data splits with absolute paths (cluster-specific)
+data/**/splits/*.csv
+data/loaders/__pycache__/
+
+# SLURM batch scripts and shell scripts (contain cluster paths and usernames)
+*.sbatch
+*.sh
+
+# Cluster-specific configs (contain absolute H5 paths)
+projects/24_normative_eval/configs/fslfast_*
+
+# Evaluation result docs with cluster paths
+EVALUATION_RESULTS.md
+DOCUMENTATION.md
+MOOD_IXI_RESULTS.md
+
+# H5 data files
+*.h5
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment
+*.egg-info/
+dist/
+build/

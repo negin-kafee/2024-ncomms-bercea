@@ -79,9 +79,13 @@ class DLConfigurator(object):
             data = self.load_data(dst_config['data_loader'], train=False)
             if 'params' in dst_config.keys():
                 dst = downstream_class(dst_name, self.model, self.device, data, dst_config['checkpoint_path'],
+                                       dataset_config=dst_config.get('data_loader'),
+                                       model_config=self.dl_config.get('model'),
                                        **dst_config['params'])
             else:
-                dst = downstream_class(dst_name, self.model, self.device, data, dst_config['checkpoint_path'])
+                dst = downstream_class(dst_name, self.model, self.device, data, dst_config['checkpoint_path'],
+                                       dataset_config=dst_config.get('data_loader'),
+                                       model_config=self.dl_config.get('model'))
             dst.start_task(global_model=global_model)
             logging.info("[Configurator::eval]: ################ Finished downstream task nr. {}/{} ################"
                          .format(idx, nr_tasks))

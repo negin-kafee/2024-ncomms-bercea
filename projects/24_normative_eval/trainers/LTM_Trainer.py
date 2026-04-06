@@ -16,6 +16,11 @@ from net_utils.ordering import OrderingType, Ordering
 """
 class PTrainer(Trainer):
     def __init__(self, training_params, model, data, device, log_wandb=True):
+        # Extract vqvae_path from training_params
+        vqvae_path = training_params.get('vqvae_path', '')
+        if not vqvae_path:
+            raise ValueError("vqvae_path must be specified in trainer params for LTM training")
+        
         self.inferer = VQVAETransformerInferer()
         self.ce_loss = CrossEntropyLoss()
         self.vqvae = VQVAE(
@@ -30,8 +35,8 @@ class PTrainer(Trainer):
             num_embeddings=16,
             embedding_dim=64)
         self.vqvae.to(device)
-        checkpoint_path = './weights/23_uad_review/ltm/2023_11_06_14_34_01_814383/best_model.pt'
-        vqvae_checkpoint = torch.load( checkpoint_path, map_location=torch.device(device))['model_weights']
+        print(f"Loading VQ-VAE checkpoint from: {vqvae_path}")
+        vqvae_checkpoint = torch.load(vqvae_path, map_location=torch.device(device))['model_weights']
         self.vqvae.load_state_dict(vqvae_checkpoint)
         test_shape = torch.zeros(16, 64, 32, 32)
         self.ordering = Ordering(ordering_type=OrderingType.RASTER_SCAN.value, spatial_dims=2, dimensions=(1,) + test_shape.shape[2:])

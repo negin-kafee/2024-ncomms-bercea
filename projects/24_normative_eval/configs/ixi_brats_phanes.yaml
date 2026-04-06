@@ -1,0 +1,97 @@
+name: PHANES_IXI_BraTS
+target_size: &target_size !!python/tuple [128, 128]
+train_batch_size: &tbatch_size 8
+downstream_batch_size: &dbatch_size 1
+checkpoint_path: &checkpoint_path ./weights/IXI_BraTS/phanes/
+
+experiment:
+  name: IXI_BraTS_AnomalyDetection
+  task: train
+  weights:
+
+device: gpu
+configurator:
+  module_name: core.Configurator
+  class_name: DLConfigurator
+  params:
+
+#
+# Model - Phanes (Pseudo Healthy and Anomaly Estimation)
+#
+model:
+  module_name: model_zoo.phanes
+  class_name: Phanes
+  params:
+    cdim: 1
+    zdim: 128
+    channels:
+      - 64
+      - 128
+      - 256
+      - 512
+      - 512
+    image_size: 128
+    conditional: False
+
+trainer:
+  module_name: projects.24_normative_eval.trainers.PhanesTrainer
+  class_name: PTrainer
+  params:
+    input_size: *target_size
+    checkpoint_path: *checkpoint_path
+    nr_epochs: 50
+    patience: 20
+    transformer:
+      module_name: transforms.synthetic
+      class_name: GenerateMasks
+      params:
+        min_size: 20
+        max_size: 40
+    loss:
+      module_name: optim.losses.ln_losses
+      class_name: L2
+      params:
+    optimizer_params:
+      lr: 2.0e-5
+  data_loader:
+    module_name: core.DataLoader
+    class_name: DefaultDataLoader
+    params:
+      args:
+        dataset_module:
+          module_name: data.loaders.brain_loader
+          class_name: BrainLoader
+        data_dir:
+          train:
+            - './data/IXI_BraTS/splits/ixi_train.csv'
+          val:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+          test:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+        target_size: *target_size
+        batch_size: *tbatch_size
+
+downstream_tasks:
+  brats_detection:
+    module_name: projects.24_normative_eval.DownstreamEvaluator
+    class_name: PDownstreamEvaluator
+    checkpoint_path: *checkpoint_path
+    params:
+      task: 'detection'
+    data_loader:
+      module_name: core.DataLoader
+      class_name: DefaultDataLoader
+      params:
+        args:
+          target_size: *target_size
+          batch_size: *dbatch_size
+          dataset_module:
+            module_name: data.loaders.brain_loader
+            class_name: BrainLoader
+          data_dir:
+            test:
+              - './data/IXI_BraTS/splits/brats_test.csv'
+            mask:
+              - './data/IXI_BraTS/splits/brats_test_masks.csv'
+            neg:
+              - './data/IXI_BraTS/splits/brats_test_neg.csv'

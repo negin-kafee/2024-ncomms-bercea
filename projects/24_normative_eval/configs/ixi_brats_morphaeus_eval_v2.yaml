@@ -1,0 +1,107 @@
+name: MorphAEus_IXI_BraTS_Eval_v2
+target_size: &target_size !!python/tuple [128, 128]
+train_batch_size: &tbatch_size 16
+downstream_batch_size: &dbatch_size 128
+num_workers: &num_workers 8
+checkpoint_path: &checkpoint_path ./weights/IXI_BraTS/morphaeus/
+
+experiment:
+  name: IXI_BraTS_AnomalyDetection
+  task: test
+  weights: './weights/IXI_BraTS/morphaeus/2025_12_17_22_57_54_891070/best_model.pt'
+
+device: gpu
+configurator:
+  module_name: core.Configurator
+  class_name: DLConfigurator
+  params:
+
+model:
+  module_name: model_zoo.morphaeus
+  class_name: MorphAEus
+  params:
+    inshape: *target_size
+    bidir: True
+    in_channels: 1
+    nr_ref_channels: 3
+    channels:
+      - 16
+      - 32
+      - 64
+      - 128
+      - 256
+      - 256
+      - 256
+    strides:
+      - 2
+      - 2
+      - 2
+      - 2
+      - 2
+      - 2
+      - 2
+    out_ch: 1
+    kernel_size: 3
+    norm: batch
+    act: swish
+    deconv_mode: stride
+
+trainer:
+  module_name: projects.24_normative_eval.trainers.MorphAEus_Trainer
+  class_name: PTrainer
+  params:
+    input_size: *target_size
+    checkpoint_path: *checkpoint_path
+    nr_epochs: 1500
+    patience: 500
+    loss:
+      module_name: optim.losses.ln_losses
+      class_name: L1
+      params:
+    optimizer_params:
+      lr: 5.0e-4
+  data_loader:
+    module_name: core.DataLoader
+    class_name: DefaultDataLoader
+    params:
+      args:
+        dataset_module:
+          module_name: data.loaders.brain_loader
+          class_name: BrainLoader
+        data_dir:
+          train:
+            - './data/IXI_BraTS/splits/ixi_train.csv'
+          val:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+          test:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+        target_size: *target_size
+        batch_size: *tbatch_size
+
+downstream_tasks:
+  brats_detection:
+    module_name: projects.24_normative_eval.DownstreamEvaluatorAtlas
+    class_name: PDownstreamEvaluator
+    checkpoint_path: *checkpoint_path
+    data_loader:
+      module_name: core.DataLoader
+      class_name: DefaultDataLoader
+      params:
+        args:
+          target_size: *target_size
+          batch_size: *dbatch_size
+          num_workers: *num_workers
+          dataset_module:
+            module_name: data.loaders.brain_loader
+            class_name: BrainLoader
+      datasets:
+        BraTS_Combined:
+          data_dir:
+            test:
+              - './data/IXI_BraTS/splits/brats_healthy_combined_test.csv'
+          label_dir:
+            test:
+              - './data/IXI_BraTS/splits/brats_healthy_combined_test_masks.csv'
+          mask_dir:
+            test:
+              - './data/IXI_BraTS/splits/brats_test_neg.csv'

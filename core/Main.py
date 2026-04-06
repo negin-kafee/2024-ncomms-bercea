@@ -12,6 +12,12 @@ import sys
 sys.path.insert(0, './')
 from dl_utils.config_utils import *
 import warnings
+import torch.multiprocessing as mp
+
+try:
+    mp.set_start_method('spawn')
+except RuntimeError:
+    pass  # already set
 
 
 class Main(object):

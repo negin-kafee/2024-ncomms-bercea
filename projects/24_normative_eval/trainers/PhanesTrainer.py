@@ -192,6 +192,7 @@ class PTrainer(Trainer):
                 lossE = lossE_real + lossE_fake + 0.005 * loss_emb
                 self.optimizer_e.zero_grad()
                 lossE.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.encoder.parameters(), max_norm=1.0)
                 self.optimizer_e.step()
 
                 # ========= Update D ==================
@@ -230,6 +231,7 @@ class PTrainer(Trainer):
 
                 self.optimizer_d.zero_grad()
                 lossD.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.decoder.parameters(), max_norm=1.0)
                 self.optimizer_d.step()
                 if torch.isnan(lossD) or torch.isnan(lossE):
                     print('is non for D')
@@ -284,6 +286,8 @@ class PTrainer(Trainer):
                 self.optimizer_netD.zero_grad()
                 sum(losses.values()).backward()
                 dis_loss.backward()
+                torch.nn.utils.clip_grad_norm_(self.model.netG.parameters(), max_norm=1.0)
+                torch.nn.utils.clip_grad_norm_(self.model.netD.parameters(), max_norm=1.0)
                 self.optimizer_netG.step()
                 self.optimizer_netD.step()
 

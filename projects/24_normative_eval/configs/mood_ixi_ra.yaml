@@ -1,0 +1,78 @@
+name: RA_MOOD_IXI
+target_size: &target_size !!python/tuple [128, 128]
+train_batch_size: &tbatch_size 8
+downstream_batch_size: &dbatch_size 1
+num_workers: &num_workers 8
+checkpoint_path: &checkpoint_path ./weights/MOOD_IXI/ra/
+
+#
+# Experiment
+#
+experiment:
+  name: MOOD_IXI_AnomalyDetection
+  task: train
+  weights: null
+
+device: gpu
+configurator:
+  module_name: core.Configurator
+  class_name: DLConfigurator
+  params:
+
+#
+# Model - RA (Rank 4 in paper) - Restoration Autoencoder
+# Uses 2D convolutions, trains on 2D slices extracted from 3D NIfTI on-the-fly
+#
+model:
+  module_name: model_zoo.ra_sigmoid
+  class_name: RA
+  params:
+    cdim: 1
+    zdim: 128
+    channels:
+      - 64
+      - 128
+      - 256
+      - 512
+      - 512
+    image_size: 128
+    conditional: False
+
+#
+# Trainer
+#
+trainer:
+  module_name: projects.24_normative_eval.trainers.RA_Trainer
+  class_name: PTrainer
+  params:
+    input_size: *target_size
+    checkpoint_path: *checkpoint_path
+    nr_epochs: 1500
+    patience: 500
+    loss:
+      module_name: optim.losses.ln_losses
+      class_name: L2
+      params:
+    optimizer_params:
+      lr: 5.0e-5
+  data_loader:
+    module_name: core.DataLoader
+    class_name: DefaultDataLoader
+    params:
+      args:
+        target_size: *target_size
+        batch_size: *tbatch_size
+        num_workers: *num_workers
+        dataset_module:
+          module_name: data.loaders.brain_nifti_loader
+          class_name: BrainNiftiLoader
+        data_dir:
+          train:
+            - './data/MOOD_IXI_3D/splits/mood_ixi_train.csv'
+          val:
+            - './data/MOOD_IXI_3D/splits/mood_ixi_val.csv'
+          test:
+            - './data/MOOD_IXI_3D/splits/mood_ixi_val.csv'
+
+# Downstream tasks
+downstream_tasks: {}

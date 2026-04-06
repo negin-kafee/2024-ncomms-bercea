@@ -1,0 +1,87 @@
+name: WGAN_IXI_BraTS
+target_size: &target_size !!python/tuple [128, 128]
+train_batch_size: &tbatch_size 16
+downstream_batch_size: &dbatch_size 1
+num_workers: &num_workers 8
+checkpoint_path: &checkpoint_path ./weights/IXI_BraTS/wgan/
+
+experiment:
+  name: IXI_BraTS_AnomalyDetection
+  task: train
+  weights:
+
+device: gpu
+configurator:
+  module_name: core.Configurator
+  class_name: DLConfigurator
+  params:
+
+#
+# Model - WGAN (Wasserstein GAN) - Required for f-AnoGAN Stage 1
+#
+model:
+  module_name: model_zoo.f-anogan
+  class_name: WGAN
+  params:
+    image_size: 128
+    channels: 1
+    latent_dim: 128
+
+trainer:
+  module_name: projects.24_normative_eval.trainers.WGANTrainer
+  class_name: PTrainer
+  params:
+    input_size: *target_size
+    checkpoint_path: *checkpoint_path
+    batch_size: *tbatch_size
+    nr_epochs: 15000
+    patience: 15000
+    loss:
+      module_name: optim.losses.ln_losses
+      class_name: L1
+      params:
+    optimizer_params:
+      lr: 1.0e-4
+  data_loader:
+    module_name: core.DataLoader
+    class_name: DefaultDataLoader
+    params:
+      args:
+        target_size: *target_size
+        batch_size: *tbatch_size
+        num_workers: *num_workers
+        dataset_module:
+          module_name: data.loaders.brain_loader
+          class_name: BrainLoader
+        data_dir:
+          train:
+            - './data/IXI_BraTS/splits/ixi_train.csv'
+          val:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+          test:
+            - './data/IXI_BraTS/splits/ixi_val.csv'
+
+downstream_tasks:
+  brats_detection:
+    module_name: projects.24_normative_eval.DownstreamEvaluator
+    class_name: PDownstreamEvaluator
+    checkpoint_path: *checkpoint_path
+    params:
+      task: 'detection'
+    data_loader:
+      module_name: core.DataLoader
+      class_name: DefaultDataLoader
+      params:
+        args:
+          target_size: *target_size
+          batch_size: *dbatch_size
+          dataset_module:
+            module_name: data.loaders.brain_loader
+            class_name: BrainLoader
+          data_dir:
+            test:
+              - './data/IXI_BraTS/splits/brats_test.csv'
+            mask:
+              - './data/IXI_BraTS/splits/brats_test_masks.csv'
+            neg:
+              - './data/IXI_BraTS/splits/brats_test_neg.csv'

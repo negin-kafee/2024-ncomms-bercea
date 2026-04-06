@@ -37,7 +37,8 @@ class PDownstreamEvaluator(DownstreamEvaluator):
         - run tasks training_end, e.g. anomaly detection, reconstruction fidelity, disease classification, etc..
     """
     def __init__(self, name, model, device, test_data_dict, checkpoint_path, task='thresholding',
-                 normal_path='./weights/24_normative_eval/Normal_brain_train/*.jpeg'):
+                 normal_path='./weights/24_normative_eval/Normal_brain_train/*.jpeg',
+                 dataset_config=None, model_config=None):
         super(PDownstreamEvaluator, self).__init__(name, model, device, test_data_dict, checkpoint_path)
 
         self.criterion_rec = L1Loss().to(self.device)
@@ -47,6 +48,8 @@ class PDownstreamEvaluator(DownstreamEvaluator):
         self.task = task
         self.training_normal_images_path = normal_path
         self.checkpoint_path = checkpoint_path + '/images/'
+        # Get model class name for unique output filenames
+        self.model_name = self.model.__class__.__name__
 
     def start_task(self, global_model):
         """
@@ -580,7 +583,7 @@ class PDownstreamEvaluator(DownstreamEvaluator):
 
                         res_2_i_np = anomaly_map[i][0]
 
-                        cv2.imwrite(self.checkpoint_path + '/AnoDDPM_' + dataset_key + '_' + str(count) + '_rec.png',
+                        cv2.imwrite(self.checkpoint_path + '/' + self.model_name + '_' + dataset_key + '_' + str(count) + '_rec.png',
                                 (rec_2_i.cpu().detach().numpy() * 255).astype(np.uint8))
                         
     def object_localization(self, global_model, th=0):
